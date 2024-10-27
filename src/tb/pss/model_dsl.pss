@@ -1,0 +1,164 @@
+// modulo top del modelo PSS
+component pss_top {
+
+	import user_executor_pkg::*;
+	import executor_pkg::*;
+	import addr_reg_pkg::*;
+
+	pool [1] bus_executor_r bus_executor_p; // defino un pool con mi ejecutor, asocielo a un UVM sequencer
+
+	bind bus_executor_p *; // todas las acciones pueden acceder a ese ejecutor
+	
+	// TODO: El siguiente fragmento de código es vendor specific, i.e. si quiere usar VC PS tiene que dejarlo así, al menos a la fecha en que se generó este código
+  // ******************************************************
+	executor_group_c<bus_executor_trait> sqr_group; 
+	executor_c<bus_executor_trait> ex_sv;
+	sv_compilation_unit_c sqr;
+	
+	bus_c bus1;
+	
+	exec init {
+		sqr.set_target_language(SV);
+		ex_sv.trait.id = 0;
+		ex_sv.set_compilation_unit(sqr);
+		ex_sv.set_path("uvm_test_top.e0.a0.sqr"); // solo cambie el path a su sequencer
+		sqr_group.add_executor(ex_sv);
+	}		
+	// ****************************************************** 
+
+ // A continuación defino el conjunto de acciones raíz aka root actions, estas son las que llamo después en el script para generar cada una de las pruebas UVm
+
+	action mbc_snd_a {
+		rand int in [10..30] num_of_xfers; // defino un número aleatorio de secuencias, lo que se traduce en transacciones, ya que van en regla 1 a 1.
+		activity {
+			do bus_c::initialize_a; // initialize 
+			repeat(i:num_of_xfers){
+				select { // selección aleatoria
+					do bus_c::mbc2spi_xfers_a;
+					do bus_c::mbc2uart_xfers_a;
+					do bus_c::mbcbrcst_xfers_a;
+				}
+			}
+		} // activity		
+	} // action
+
+	action spi_snd_a {
+		rand int in [10..30] num_of_xfers;
+		activity {
+			do bus_c::initialize_a; // initialize 
+			repeat(i:num_of_xfers){
+				select {
+					do bus_c::spi2mbc_xfers_a;
+					do bus_c::spi2uart_xfers_a;
+					do bus_c::spibrcst_xfers_a;
+				}
+			}
+		} // activity		
+	} // action
+
+	action uart_snd_a {
+		rand int in [10..30] num_of_xfers;
+		activity {
+			do bus_c::initialize_a; // initialize 
+			repeat(i:num_of_xfers){
+				select {
+					do bus_c::uart2mbc_xfers_a;
+					do bus_c::uart2spi_xfers_a;
+					do bus_c::uartbrcst_xfers_a;
+				}
+			}
+		} // activity		
+	} // action
+
+	action solo_brcst_a {
+		rand int in [5..10] num_of_xfers;
+		activity {
+			do bus_c::initialize_a; // initialize 
+			repeat(i:num_of_xfers){
+				select {
+					do bus_c::mbcbrcst_xfers_a;
+					do bus_c::spibrcst_xfers_a;
+					do bus_c::uartbrcst_xfers_a;
+				}
+			}
+		} // activity		
+	} // action
+	
+	action random_xfers_a {
+		rand int in [10..30] num_of_xfers;
+		activity {
+			do bus_c::initialize_a; // initialize 
+			repeat(i:num_of_xfers){
+				select {
+					do bus_c::rand_xfers_a;
+				} // select
+			} // repeat
+		} // activity
+	} // action
+
+	action todas_a_todas_a {
+		activity {
+			sequence {
+				do bus_c::initialize_a; // initialize 
+				// MBC TRANSFERS 
+				do bus_c::mbc2spi_xfers_a;
+				do bus_c::mbc2uart_xfers_a;
+				do bus_c::mbcbrcst_xfers_a;
+				// SPI TRANSFERS
+				do bus_c::spi2mbc_xfers_a;
+				do bus_c::spi2uart_xfers_a;
+				do bus_c::spibrcst_xfers_a;			
+				// UART TRANSFERS
+				do bus_c::uart2mbc_xfers_a;
+				do bus_c::uart2spi_xfers_a;
+				do bus_c::uartbrcst_xfers_a;
+			} // sequence
+		} // action
+	} // action
+
+	action solo_a_mbc_a { // accion raíz, solo se envian paquetes a MBC o bien broadcast
+		rand int in [10..30] num_of_xfers; // de diez a treinta transacciones, la idea es llenar las FIFOs de salida hasta generar overflow
+		activity {
+			do bus_c::initialize_a; // initialize 
+			repeat(i:num_of_xfers){
+				select {
+					do bus_c::spi2mbc_xfers_a;
+					do bus_c::uart2mbc_xfers_a;
+					do bus_c::spibrcst_xfers_a;
+					do bus_c::uartbrcst_xfers_a;
+				}
+			}
+		} // activity		
+	} // action
+
+	action solo_a_spi_a { // accion raíz, solo se envian paquetes a SPI o bien broadcast
+		rand int in [10..30] num_of_xfers;
+		activity {
+			do bus_c::initialize_a; // initialize 
+			repeat(i:num_of_xfers){
+				select {
+					do bus_c::mbc2spi_xfers_a;
+					do bus_c::uart2spi_xfers_a;
+					do bus_c::mbcbrcst_xfers_a;
+					do bus_c::uartbrcst_xfers_a;
+				}
+			}
+		} // activity		
+	} // action	
+
+	action solo_a_uart_a { // accion raíz, solo se envian paquetes a SPI o bien broadcast
+		rand int in [10..30] num_of_xfers;
+		activity {
+			do bus_c::initialize_a; // initialize 
+			repeat(i:num_of_xfers){
+				select {
+					do bus_c::spi2uart_xfers_a;
+					do bus_c::mbc2uart_xfers_a;
+					do bus_c::mbcbrcst_xfers_a;
+					do bus_c::spibrcst_xfers_a;
+				}
+			}
+		} // activity		
+	} // action
+
+} // component

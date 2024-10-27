@@ -1,0 +1,86 @@
+package user_executor_pkg {// paquete que contiene definiciones base para poder generar el escenario de prueba
+  import executor_pkg::*; // importa el paquete con las funciones base definidas por Synopsys
+  const int MAX_NUM_OF_XFERS = 20; // esto no se usa, creo...
+
+//	resource bus_sqr_r {};
+
+  struct bus_executor_trait : executor_trait_s { // este struct hereda de un struct definido por Synopsys, debe estar SI o SI
+    rand int id; 
+  };
+
+  resource bus_executor_r : executor_claim_s<bus_executor_trait> { // esto es estándar, es para asignar un número de instancia al executor
+    constraint trait.id == instance_id;
+  }
+    
+  enum op_type_e { // enum con los tipos de operación, esto es utilizado por el UVM driver para saber a cual FIFO de entrada del bus le debe hacer push 
+    MBC2SPI		= 0,
+    MBC2UART	= 1,
+    SPI2MBC		= 2,
+    SPI2UART	= 3,
+    UART2MBC	= 4,
+    UART2SPI	= 5,
+    MBCBRCST	= 6,
+    SPIBRCST	= 7,
+    UARTBRCST	= 8
+  };	
+
+  struct message_s { // estructura de la transaccion, emula al sequence item
+    rand bit [59:0] pkt; // paquete aka payload
+    rand op_type_e op_type; // tipo de transacción
+		rand bit [2:0] tgt; //destino aka target 
+		rand bit [1:0] src; // fuente aka source
+    rand bit [3:0] delay; // retardo aka delay
+    constraint delay in [0..10]; // retardo entre transacciones de entre 0 y 10 ciclos del reloj
+		constraint { // valores de source y target en función del tipo de operación (se puede simplificar un poco, might do it later idk)
+      if (op_type == MBC2SPI)   { tgt == 1;	src == 0;} ;
+			if (op_type == MBC2UART)  { tgt == 2;	src == 0;} ;	
+      if (op_type == SPI2MBC)   { tgt == 0;	src == 1;} ;
+      if (op_type == SPI2UART)  { tgt == 2;	src == 1;} ;
+			if (op_type == UART2MBC)  { tgt == 0;	src == 2;} ;	
+      if (op_type == UART2SPI)  { tgt == 1;	src == 2;} ;
+			if (op_type == MBCBRCST)  { tgt == 7;	src == 0;} ;	      
+      if (op_type == SPIBRCST)  { tgt == 7;	src == 1;} ;
+			if (op_type == UARTBRCST) { tgt == 7;	src == 2;} ;	
+		};
+		covergroup {
+      PAYLOAD: coverpoint pkt;
+      OP_TYPE: coverpoint op_type;
+      TRGET: coverpoint tgt{
+				bins tg_mbc   = [0];
+		    bins tg_spi   = [1];
+		    bins tg_uart  = [2];
+		    bins tg_brcst = [7];
+			}
+			SOURCE: coverpoint src {
+				bins src_mbc  = [0];
+      	bins src_spi  = [1];
+      	bins src_uart = [2];			
+			}
+      BUS_SCENARIOS: cross TRGET, SOURCE{
+				ignore_bins ignore_vals = BUS_SCENARIOS with (TRGET == SOURCE);
+			}
+    } bus_scenarios_cg;
+  };
+
+  buffer xfer_b { // declaración de un buffer (flow object) para conectar las acciones
+    rand message_s msg; // tipo de datos que puede manejar el buffer
+  }	
+
+  abstract action bus_prod_xfer_a { // ACCIONES ABSTRACTAS: SOLO SIRVEN PARA HEREDAR, NO PUEDEN SER INSTANCIADAS POR SI SOLAS, COMO LAS CLASES VIRTUALES EN SYSTEMVERILOG
+    output xfer_b dat_o;   // esta acción genera el mensaje y lo transmite a través del buffer 
+  }
+    
+  abstract action bus_copy_xfer_a { // 
+    input xfer_b dat_i;  // esta acción permite mapear el mensaje aka struct en una secuencia, recibe un mensaje a traves de un buffer predefinido
+  }
+
+        
+}
+
+
+
+
+
+
+
+

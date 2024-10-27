@@ -1,0 +1,73 @@
+extend component bus_c { // extiendo del componente base, ojo extender != heredar, este approach permite añadir funciones o acciones extra dependiendo del nivel de abstracción del DUT
+	// definición de acciones compuestas, los bloques activity se ejecutan de manera secuencial por defecto
+	action mbc2spi_xfers_a { 
+		activity {
+			do mbc2spi_a;
+			do bus_copy_a;
+		}	
+	} // action
+
+	action mbc2uart_xfers_a { 
+		activity {
+			do mbc2uart_a;
+			do bus_copy_a;
+		}	
+	}
+	
+	action spi2mbc_xfers_a { 
+		activity {
+			do spi2mbc_a;
+			do bus_copy_a;
+		}	
+	}
+
+	action spi2uart_xfers_a { 
+		activity {
+			do spi2uart_a;
+			do bus_copy_a;
+		}	
+	}
+
+	action uart2mbc_xfers_a { 
+		activity {
+			do uart2mbc_a;
+			do bus_copy_a;
+		}	
+	}
+	
+	action uart2spi_xfers_a { 
+		activity {
+			do uart2spi_a;
+			do bus_copy_a;
+		}	
+	}
+	
+	action mbcbrcst_xfers_a { 
+		activity {
+			do mbcbrcst_a;
+			do bus_copy_a;
+		}	
+	}
+	
+	action spibrcst_xfers_a { 
+		activity {
+			do spibrcst_a;
+			do bus_copy_a;
+		}	
+	}
+
+	action uartbrcst_xfers_a { 
+		activity {
+			do uartbrcst_a;
+			do bus_copy_a;
+		}	
+	}
+
+	action rand_xfers_a { 
+		activity {
+			do rand_xfer_a;
+			do bus_copy_a;
+		}	
+	}
+
+} // component

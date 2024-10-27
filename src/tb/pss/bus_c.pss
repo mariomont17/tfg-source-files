@@ -1,0 +1,114 @@
+component bus_c {
+	// se importan algunos de los paquetes de Synopsys y otros definidos por el usuario
+	import user_executor_pkg::*;
+	import executor_pkg::*;
+	import addr_reg_pkg::*;
+
+	pool xfer_b xfer_b_p; // pool que permite que todas acciones puedan acceder al contenido de los buffer
+	bind xfer_b_p *; // enlace de todas las acciones con este buffer
+
+	// a continuación defino todas las acciones necesarias para poder generar secuencias de forma más ordenada
+	// esto es equivalente a tener varios archivos con UVM sequences
+	
+	action bus_copy_a: bus_copy_xfer_a { // hereda de bus_copy_xfer_a para que ahora si pueda ser instanciada
+		lock bus_executor_r bus_executor_l; // bloqueo el recurso para que ninguna otra acción lo pueda utilizar mientras se ejecuta esta acción
+		//input xfer_b dat_i;
+	}
+
+	action mbc2spi_a: bus_prod_xfer_a { // MBC TO SPI ACTION
+		//output xfer_b dat_o;
+		constraint {
+			dat_o.msg.op_type == MBC2SPI;
+		};
+	}
+
+	action mbc2uart_a: bus_prod_xfer_a { // MBC TO UART ACTION
+		//output xfer_b dat_o;
+		
+		constraint {
+			dat_o.msg.op_type == MBC2UART;	
+		}
+	}
+
+	action spi2mbc_a: bus_prod_xfer_a { // SPI TO MBC ACTION
+		//output xfer_b dat_o;
+		constraint {
+			dat_o.msg.op_type == SPI2MBC;
+		}
+	}
+
+	action spi2uart_a: bus_prod_xfer_a { // SPI TO UART ACTION
+		//output xfer_b dat_o;
+		constraint {
+			dat_o.msg.op_type == SPI2UART;
+		}
+	}
+
+	action uart2mbc_a: bus_prod_xfer_a { // UART TO MBC ACTION
+		//output xfer_b dat_o;
+		constraint {
+			dat_o.msg.op_type == UART2MBC;	
+		}
+	}
+		
+	action uart2spi_a: bus_prod_xfer_a { // UART TO SPI ACTION
+		//output xfer_b dat_o;
+		constraint {
+			dat_o.msg.op_type == UART2SPI;
+		}
+	}
+
+	action mbcbrcst_a: bus_prod_xfer_a { // MBC BROADCAST ACTION
+		//output xfer_b dat_o;
+		constraint {
+			dat_o.msg.op_type == MBCBRCST;
+		}
+	}
+
+	action spibrcst_a: bus_prod_xfer_a { // SPI BROADCAST ACTION
+		//output xfer_b dat_o;
+		constraint {
+			dat_o.msg.op_type == SPIBRCST;	
+		}
+	}
+	
+	action uartbrcst_a: bus_prod_xfer_a { // UART BROADCAST ACTION
+		//output xfer_b dat_o;
+		constraint {
+			dat_o.msg.op_type == UARTBRCST;
+		}
+	}	
+
+	action rand_xfer_a: bus_prod_xfer_a { // RANDOM TRANSFER ACTION
+		//output xfer_b dat_o;
+	}	
+	
+	
+	extend action bus_copy_a { // ATOMIC ACTION 1 (BODY), esta acción es tal vez la más importante de todo el código, ya que contiene la plantilla que utilizo después en el ambiente UVM
+	// el bloque exec body se cambia en runtime con los valores reales de la transacción, para eso utilizo expresiones "Mustache"
+		exec body SV = """
+      string path;
+			bus_seq seq;
+			bus_sqr sqcr;
+
+			$sformat(path, "%s", "{{pss_top.ex_sv.get_path()}}");
+			if (!$cast(sqcr, uvm_top.find(path)))
+				`uvm_fatal("ENV_SV", $sformatf("PATH does not exist:%s",path));	
+	
+			seq = bus_seq::type_id::create("seq");
+			seq.write({{dat_i.msg.tgt}}, {{dat_i.msg.src}}, {{dat_i.msg.pkt}}, {{dat_i.msg.op_type}}, {{dat_i.msg.delay}}, sqcr);
+		""";
+
+	}
+
+	action initialize_a { // ATOMIC ACTION 2 (HEADER), esta solo quiero que se "imprima" una vez para que no hayan errores a la hora de compilar en VCS, por ende la pongo en una acción aparte
+		(* instance *)
+		exec declaration SV = """
+		  import bus_env_pkg::*;	 
+			import bus_seq_pkg::*;
+  	""";
+	}
+
+
+}
+
